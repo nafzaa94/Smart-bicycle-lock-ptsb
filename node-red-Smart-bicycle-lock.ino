@@ -5,12 +5,12 @@
 Servo myservo;
 
 // Replace the next variables with your SSID/Password combination
-const char* ssid = "name wifi";
-const char* password = "password wifi";
+const char* ssid = "HP";
+const char* password = "nafza9494";
 
 // Add your MQTT Broker IP address, example:
 //const char* mqtt_server = "192.168.1.144";
-const char* mqtt_server = "ip address mqtt";
+const char* mqtt_server = "192.168.43.228";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -22,6 +22,8 @@ int value = 0;
 const int ledPin = 4;
 int servolock = 27;
 int vibsensor = 34;
+int buzz = 2;
+
 
 int valuevibsensor = 0;
 int state = 0;
@@ -42,6 +44,7 @@ void setup() {
   client.setCallback(callback);
 
   pinMode(ledPin, OUTPUT);
+  pinMode(buzz, OUTPUT);
   pinMode(vibsensor, INPUT);
   myservo.write(0);
 }
@@ -71,20 +74,16 @@ void callback(char* topic, byte* message, unsigned int length) {
   Serial.print(topic);
   Serial.print(". Message: ");
   String messageTemp;
+  String messageStart;
   
   for (int i = 0; i < length; i++) {
     Serial.print((char)message[i]);
     messageTemp += (char)message[i];
+    messageStart += (char)message[i];
   }
   Serial.println();
 
   // Feel free to add more if statements to control more GPIOs with MQTT
-
-  if (String(topic) == "esp32/start"){
-    if(messageTemp == "start"){
-      state = 0;
-      }
-    }
 
   // If a message is received on the topic esp32/output, you check if the message is either "on" or "off". 
   // Changes the output state according to the message
@@ -101,6 +100,13 @@ void callback(char* topic, byte* message, unsigned int length) {
       statelock = 0;
     }
   }
+
+  else if (String(topic) == "esp32/start"){
+    if(messageStart == "start"){
+      Serial.println("start");
+      state = 0;
+      }
+    }
 }
 
 void reconnect() {
@@ -112,6 +118,7 @@ void reconnect() {
       Serial.println("connected");
       // Subscribe
       client.subscribe("esp32/lock");
+      client.subscribe("esp32/start");
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -129,11 +136,16 @@ void loop() {
 
   valuevibsensor = digitalRead(vibsensor);
 
-  if (valuevibsensor == LOW && state == 0){
+  if (valuevibsensor == HIGH && state == 0){
     if (statelock == 0){
       for (int i = 0; i < 5; i++){
       client.publish("esp32/notification", "notification");
       }
+      digitalWrite(buzz, HIGH);
+      Serial.println("buzz on");
+      delay(5000);
+      digitalWrite(buzz, LOW);
+      Serial.println("buzz off");
       state = 1;
       }
     }
